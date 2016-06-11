@@ -20,7 +20,7 @@ import Lib.Database
 
 returnUsers :: Connection -> Socket -> IO ()
 returnUsers dbConn soc = do
-  rows <- query_ dbConn allUsers
+  rows <- query_ dbConn allUsersQuery
   let usernames = map username rows
       newlineSeparated = T.concat $ intersperse "\n" usernames
   sendAll soc (encodeUtf8 newlineSeparated)
@@ -42,6 +42,7 @@ returnUser dbConn soc username = do
                             (show username))
                   return ()
     Just user -> sendAll soc (formatUser user)
+
 
 handleQuery :: Connection -> Socket -> IO ()
 handleQuery dbConn soc = do
@@ -70,7 +71,7 @@ main = withSocketsDo $ do
   bindSocket sock (addrAddress serveraddr)
   listen sock 1
   -- only one connection open at a time
-  conn <- open "finger.db"
+  conn <- connectDb
   handleQueries conn sock
   SQLite.close conn
   sClose sock

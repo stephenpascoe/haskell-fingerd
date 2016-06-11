@@ -3,11 +3,11 @@
 {-# LANGUAGE RecordWildCards #-}
 
 module Lib.Database ( createUsers
-                    , insertUser
-                    , allUsers
+                    , allUsersQuery
                     , getUserQuery
                     , getUser
                     , createDatabase
+                    , connectDb
                     , User(..)
                     ) where
 
@@ -53,14 +53,14 @@ CREATE TABLE IF NOT EXISTS users (
 )
 |]
 
-insertUser :: Query
-insertUser = "INSERT INTO users VALUES (?, ?, ?, ?, ?, ?)"
+insertUserQuery :: Query
+insertUserQuery = "INSERT INTO users VALUES (?, ?, ?, ?, ?, ?)"
 
-allUsers :: Query
-allUsers = "SELECT * from users"
+allUsersQuery :: Query
+allUsersQuery = "SELECT * from users"
 
+getUserQuery :: Query
 getUserQuery = "SELECT * FROM users WHERE username = ?"
-
 
 getUser :: Connection -> Text -> IO (Maybe User)
 getUser conn username = do
@@ -70,16 +70,29 @@ getUser conn username = do
     [user] -> return $ Just user
     _ -> throwIO DuplicateData
 
+
+connectDb :: IO Connection
+connectDb = open "finger.db"
+
 createDatabase :: IO ()
 createDatabase = do
-  conn <- open "finger.db"
+  conn <- connectDb
   execute_ conn createUsers
-  execute conn insertUser meRow
-  rows <- query_ conn allUsers
+  addUser conn me
+  rows <- query_ conn allUsersQuery
   mapM_ print (rows :: [User])
   SQLite.close conn
-  where meRow :: UserRow
-        meRow = (Null, "bob", "/bin/zsh", "/home/bob", "Bob Dole", "555-123-4567")
+  where me = User { userId = 0
+                  , username = "stampy"
+                  , shell = "/bin/zsh"
+                  , homeDirectory = "/home/bob"
+                  , realName = "Stampy Longnose"
+                  , phone = "555-123-4567"
+                  }
+
+addUser :: Connection -> User -> IO ()
+addUser conn user = do
+  execute conn insertUserQuery $ newUserRow user
 
 instance FromRow User where
   fromRow = User <$> field <*> field <*> field
@@ -90,3 +103,6 @@ instance ToRow User where
     toRow (id_, username, shell, homeDir, realName, phone)
 
 type UserRow = (Null, Text, Text, Text, Text, Text)
+
+newUserRow :: User -> UserRow
+newUserRow User{..} = (Null, username, shell, homeDirectory, realName, phone)
