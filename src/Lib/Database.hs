@@ -78,17 +78,34 @@ createDatabase :: IO ()
 createDatabase = do
   conn <- connectDb
   execute_ conn createUsers
-  addUser conn me
+  mapM_ (addUser conn) [stampy, rowan, tessa]
   rows <- query_ conn allUsersQuery
   mapM_ print (rows :: [User])
   SQLite.close conn
-  where me = User { userId = 0
-                  , username = "stampy"
-                  , shell = "/bin/zsh"
-                  , homeDirectory = "/home/bob"
-                  , realName = "Stampy Longnose"
-                  , phone = "555-123-4567"
-                  }
+  where stampy = User {
+          userId = 0
+          , username = "stampy"
+          , shell = "/bin/zsh"
+          , homeDirectory = "/home/stampy"
+          , realName = "Stampy Longnose"
+          , phone = "555-123-4567"
+          }
+        rowan = User {
+          userId = 0
+          , username = "rowan"
+          , shell = "/bin/zsh"
+          , homeDirectory = "/home/rowan"
+          , realName = "Rowan Pascoe"
+          , phone = "555-123-4568"
+          }
+        tessa = User {
+          userId = 0
+          , username = "tessa"
+          , shell = "/bin/zsh"
+          , homeDirectory = "/home/tessa"
+          , realName = "Tessa Pascoe"
+          , phone = "555-123-4569"
+          }
 
 addUser :: Connection -> User -> IO ()
 addUser conn user = do
